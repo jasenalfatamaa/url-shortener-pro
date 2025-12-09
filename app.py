@@ -86,7 +86,7 @@ def shorten_url():
         redis_client.setex(short_code, 86400, long_url)
 
         return jsonify({
-            "short_url": f"http://yourdomain.com/{short_code}",
+            "short_url": f"http://localhost:5003/{short_code}",
             "short_code": short_code
         }), 201
 
