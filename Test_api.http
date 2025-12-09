@@ -5,3 +5,11 @@ Content-Type: application/json
   "long_url": "https://www.google.com/search?q=flask+url+shortener+tutorial"
 }
 
+
+
+POST http://127.0.0.1:5003/api/v1/shorten
+Content-Type: application/json
+
+{
+  "long_url": "https://gemini.google.com/app/d6e66d0f17ea9bdf"
+}
