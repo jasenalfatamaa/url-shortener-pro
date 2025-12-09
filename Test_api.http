@@ -1,3 +1,4 @@
+### 1. testing ke google
 POST http://127.0.0.1:5003/api/v1/shorten
 Content-Type: application/json
 
@@ -6,7 +7,7 @@ Content-Type: application/json
 }
 
 
-
+### testing ke gemini
 POST http://127.0.0.1:5003/api/v1/shorten
 Content-Type: application/json
 
