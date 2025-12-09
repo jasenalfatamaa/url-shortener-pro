@@ -1,4 +1,5 @@
 import redis
+import random
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
@@ -47,6 +48,13 @@ app = create_app()
 
 BASE62_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+def generate_random_code():
+    # Menghasilkan short code acak dengan panjang bervariasi secara acak antara 4, 5, atau 6 karakter.
+    length = random.randint(4,6)
+
+    return ''.join(random.choice(BASE62_CHARS) for _ in range(length))
+    
+
 def base62_encode(num):
     """mengonversi ID integer menjadi string base62"""
     if num == 0:
@@ -68,31 +76,32 @@ def shorten_url():
 
     if not long_url:
         return jsonify({"error": "long_url is required"}), 400
+    
+    for _ in range(5): 
+        short_code = generate_random_code()
 
-    try:
-        # 1. Simpan URL Panjang ke DB (tanpa short_code)
-        new_mapping = URLMapping(long_url=long_url, short_code='temp')
-        db.session.add(new_mapping)
-        db.session.commit()
+        # cek apakah kode sudah ada di DB
+        if not URLMapping.query.filter_by(short_code=short_code).first():
 
-        # 2. Hasilkan short_code dari ID yang baru di buat
-        short_code = base62_encode(new_mapping.id)
+            try:
+                # Simpan URL Panjang ke DB (tanpa short_code)
+                new_mapping = URLMapping(long_url=long_url, short_code=short_code)
+                db.session.add(new_mapping)
+                db.session.commit()
 
-        # 3. update baris di DB dengan short_code yang sebenarnya
-        new_mapping.short_code = short_code
-        db.session.commit()
+                # simpan juga ke redis (optional: pre-caching)
+                redis_client.setex(short_code, 86400, long_url)
 
-        # 4. simpan juga ke redis (optional: pre-caching)
-        redis_client.setex(short_code, 86400, long_url)
+                return jsonify({
+                    "short_url": f"http://localhost:5003/{short_code}",
+                    "short_code": short_code
+                }), 201
 
-        return jsonify({
-            "short_url": f"http://localhost:5003/{short_code}",
-            "short_code": short_code
-        }), 201
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": "Internal Server Error"}), 500
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({"error": "Internal Server Error"}), 500
+    
+    return jsonify({"error": "Failed to generate unique short code after multiple attempts"}), 503
 
 
 @app.route('/<short_code>', methods=['GET'])
